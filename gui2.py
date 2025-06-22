@@ -18,7 +18,7 @@ class BotGUI:
         self.health_label = tk.Label(status_frame, text="Health: ?")
         self.health_label.pack(side="left", padx=10)
         self.username = tk.Label(status_frame, text="Username: ?")
-        self.username.pack(side="left", padx=10,pady=10)
+        self.username.pack(side="left", padx=35,pady=10)
         self.pos_label = tk.Label(status_frame, text="Position: ?")
         self.pos_label.pack(side="right", padx=10)
 
@@ -32,7 +32,7 @@ class BotGUI:
             "Dig Gold Block": "digGold", "Quit": "quit",
             "Locate Gold": "locateGold", "Kill Zombies": "killZombies",
             "Stop Killing Zombies": "stopKillZombies", "Come to me": "comeToMe",
-            "Fight Me": "fightMe", "Clear Queue": "clearQ"
+            "Fight Me": "fightMe", "Clear Queue": "clearQ", "Shoot Me": "shootMe"
         }
 
         commands_frame = tk.LabelFrame(self.root, text="Commands")

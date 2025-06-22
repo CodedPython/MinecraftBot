@@ -115,7 +115,10 @@ wss.on("connection", function connection(ws) {
       if (!player || !player.entity) return;
       Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
     } else if (cmd === "fightMe") {
-      fightPlayer(bot, playerUsername, "sword");
+      //console.log("Fighting player")
+      fightPlayer(bot, bot.players[playerUsername], "sword");
+    } else if (cmd==="shootMe"){
+      ShootPlayer(bot, bot.players[playerUsername], "bow")
     } else if (cmd==="clearQ"){
       runningTask = false;
       taskQueue.splice(0, taskQueue.length);
