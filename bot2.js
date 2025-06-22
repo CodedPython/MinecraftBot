@@ -7,7 +7,7 @@ const vec3 = require("vec3");
 const viewer = require("prismarine-viewer").mineflayer;
 const armorManager = require("mineflayer-armor-manager");
 const pvp = require("mineflayer-pvp").plugin;
-const minecraftHawkEye = require("minecrafthawkeye").default;
+const minecraftHawkEye = require("minecrafthawkeye").default; // https://github.com/sefirosweb/minecraftHawkEye/tree/master?tab=readme-ov-file
 //Create a bot
 const bot = mineflayer.createBot({
   host: "localhost",
@@ -20,7 +20,7 @@ bot.loadPlugin(pathfinder);
 bot.loadPlugin(collectBlock);
 bot.loadPlugin(pvp);
 bot.loadPlugin(armorManager);
-bot.loadPlugin(minecraftHawkEye)
+bot.loadPlugin(minecraftHawkEye);
 // Task Queue and default variables
 const taskQueue = [];
 let runningTask = false;
@@ -91,6 +91,14 @@ wss.on("connection", function connection(ws) {
       const parts = cmd.split(":");
       const count = parts.length > 1 ? parseInt(parts[1], 10) : 1;
       await digDown(count);
+    } else if (cmd.startsWith("fightWith")) {
+      const parts = cmd.split(":");
+      const name = parts[1]
+      fightPlayer(bot, bot.players[name]);
+    } else if (cmd.startsWith("shootAt")) {
+      const parts = cmd.split(":");
+      const name = parts[1]
+      ShootPlayer(bot, bot.players[name]);
     } else if (cmd === "buildUp") await buildUp();
     else if (cmd === "digGold") await digGold();
     else if (cmd === "locateGold") locateGold(32);
@@ -106,6 +114,7 @@ wss.on("connection", function connection(ws) {
       if (!player || !player.entity) return;
       Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
     } else if (cmd === "fightMe") fightPlayer(bot, playerUsername);
+    
   });
 });
 bot.on("chat", (username, message) => {
@@ -127,10 +136,13 @@ bot.on("chat", (username, message) => {
   } else if (message === "fight me") {
     const player = bot.players[username];
     fightPlayer(bot, player);
-  } else if (message ==="shoot me"){
-    const player = bot.players[username]
+  } else if (message === "shoot me") {
+    const player = bot.players[username];
     //ShootProjectile(bot, player.entity);
-    bot.hawkEye.autoAttack(player.entity, 'bow')
+    bot.hawkEye.autoAttack(player.entity, "crossbow"); //Weapon and target can be changed.
+    
+  } else if (message === "stop"){
+    bot.hawkEye.stop()
   }
 });
 function digDown(count = 1) {
@@ -263,4 +275,9 @@ function fightPlayer(bot, playerEntity, meleeItem = "sword") {
   if (!playerEntity) return;
   EquipItem(bot, meleeItem);
   bot.pvp.attack(playerEntity.entity);
+}
+function ShootPlayer(bot, playerEntity, rangedItem = "bow"){
+  if (!playerEntity) return;
+  EquipItem(bot, rangedItem);
+  bot.hawkEye.autoAttack(playerEntity.entity, rangedItem);
 }

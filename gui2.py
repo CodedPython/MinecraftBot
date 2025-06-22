@@ -36,6 +36,7 @@ class BotGUI:
             "Stop Killing Zombies": "stopKillZombies",
             "Come to me":"comeToMe",
             "Fight Me": "fightMe"
+            
         }
 
         for label, cmd in self.commands.items():
@@ -50,6 +51,20 @@ class BotGUI:
         self.dig_depth.pack()
         tk.Button(self.root, text="Dig Down (Custom)", command=self.send_dig_down_custom).pack()
 
+        # PVP with Custom Player
+        tk.Label(self.root, text="Fight Player (name):").pack()
+        self.player_name = tk.Entry(self.root)
+        self.player_name.insert(0, "PlayerNameHere")
+        self.player_name.pack()
+        tk.Button(self.root, text="Fight Player (name)", command=self.send_fight_with_player).pack()
+        
+        # Shoot arrows at custom player
+        tk.Label(self.root, text="Shoot Player (name):").pack()
+        self.player_name2 = tk.Entry(self.root)
+        self.player_name2.insert(0, "PlayerNameHere")
+        self.player_name2.pack()
+        tk.Button(self.root, text="Shoot Player (name)", command=self.send_Shoot_at_player).pack()
+        
         # Macro display
         tk.Label(self.root, text="Macro").pack()
         self.macro_listbox = tk.Listbox(self.root, height=6)
@@ -120,7 +135,17 @@ class BotGUI:
                 self.ws.send(f"digDown:{count}")
         except ValueError:
             print("Invalid number for dig down")
-
-
+    def send_fight_with_player(self):
+        try:
+            name = self.player_name.get()
+            self.ws.send(f"fightWith:{name}")
+        except ValueError:
+            print("Invalid name for custom fight")
+    def send_Shoot_at_player(self):
+        try:
+            name = self.player_name2.get()
+            self.ws.send(f"shootAt:{name}")
+        except ValueError:
+            print("Invalid name for custom fight")
 if __name__ == "__main__":
     BotGUI()
