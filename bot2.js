@@ -62,6 +62,7 @@ wss.on("connection", function connection(ws) {
       ws.send(
         JSON.stringify({
           health: bot.health,
+          username: bot.entity.username,
           position: bot.entity.position,
         })
       );
