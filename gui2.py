@@ -34,7 +34,8 @@ class BotGUI:
             "Locate Gold": "locateGold",
             "Kill Zombies":"killZombies",
             "Stop Killing Zombies": "stopKillZombies",
-            "Come to me":"comeToMe"
+            "Come to me":"comeToMe",
+            "Fight Me": "fightMe"
         }
 
         for label, cmd in self.commands.items():

@@ -5,15 +5,22 @@ const collectBlock = require("mineflayer-collectblock").plugin;
 const WebSocket = require("ws");
 const vec3 = require("vec3");
 const viewer = require("prismarine-viewer").mineflayer;
+const armorManager = require("mineflayer-armor-manager");
+const pvp = require("mineflayer-pvp").plugin;
+const minecraftHawkEye = require("minecrafthawkeye").default;
 //Create a bot
 const bot = mineflayer.createBot({
   host: "localhost",
   port: 25565,
   username: "MacroBot",
+  logErrors: false,
 });
 // Load the bot plugins
 bot.loadPlugin(pathfinder);
 bot.loadPlugin(collectBlock);
+bot.loadPlugin(pvp);
+bot.loadPlugin(armorManager);
+bot.loadPlugin(minecraftHawkEye)
 // Task Queue and default variables
 const taskQueue = [];
 let runningTask = false;
@@ -21,6 +28,7 @@ let defaultMove;
 let zombieAttackInterval;
 let mcData;
 let playerUsername = "PlayerNameHere";
+let warnUserMelee = true;
 function enqueueTask(taskFn) {
   taskQueue.push(taskFn);
   processTaskQueue();
@@ -91,10 +99,13 @@ wss.on("connection", function connection(ws) {
       bot.quit();
     } else if (cmd == "killZombies") {
       KillZombies(bot);
-    } else if (cmd ==="stopKillZombies"){
-      StopKillingZombies(bot)
-
-    }
+    } else if (cmd === "stopKillZombies") {
+      StopKillingZombies(bot);
+    } else if (cmd === "comeToMe") {
+      const player = bot.players[playerUsername];
+      if (!player || !player.entity) return;
+      Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
+    } else if (cmd === "fightMe") fightPlayer(bot, playerUsername);
   });
 });
 bot.on("chat", (username, message) => {
@@ -113,6 +124,13 @@ bot.on("chat", (username, message) => {
     KillZombies(bot);
   } else if (message === "stop kill zombie") {
     StopKillingZombies(bot);
+  } else if (message === "fight me") {
+    const player = bot.players[username];
+    fightPlayer(bot, player);
+  } else if (message ==="shoot me"){
+    const player = bot.players[username]
+    //ShootProjectile(bot, player.entity);
+    bot.hawkEye.autoAttack(player.entity, 'bow')
   }
 });
 function digDown(count = 1) {
@@ -182,7 +200,7 @@ function digGold() {
       await bot.tool.equipForBlock(block);
       await bot.dig(block);
     } else {
-      bot.chat("/tell CodedPythonA Can't reach gold block");
+      bot.chat("/tell playerUsername Can't reach gold block");
     }
   });
 }
@@ -207,10 +225,22 @@ function Pathfind_To_Goal(bot, goal_location) {
     console.error("Error when attemping to pathfind:", error);
   }
 }
+function EquipItem(bot, itemWanted) {
+  const itemToEquip = bot.inventory
+    .items()
+    .find((item) => item.name.includes(itemWanted));
+  if (itemToEquip) bot.equip(itemToEquip, "hand");
+  return itemToEquip;
+}
 function KillZombies(bot) {
   if (zombieAttackInterval) return;
   zombieAttackInterval = setInterval(async () => {
-    
+    const sword = EquipItem(bot, "sword");
+    const axe = EquipItem(bot, "axe");
+    if (!sword && !axe && warnUserMelee) {
+      console.warn("Bot Doesn't have a melee weapon");
+      warnUserMelee = false;
+    }
     const mobFilter = (e) => e.type === "hostile" && e.displayName === "Zombie";
     const mob = bot.nearestEntity(mobFilter);
     //console.log(mob)
@@ -226,5 +256,11 @@ function KillZombies(bot) {
 }
 function StopKillingZombies(bot) {
   clearInterval(zombieAttackInterval);
+  warnUserMelee = true;
   zombieAttackInterval = null;
+}
+function fightPlayer(bot, playerEntity, meleeItem = "sword") {
+  if (!playerEntity) return;
+  EquipItem(bot, meleeItem);
+  bot.pvp.attack(playerEntity.entity);
 }
