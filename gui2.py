@@ -35,7 +35,8 @@ class BotGUI:
             "Kill Zombies":"killZombies",
             "Stop Killing Zombies": "stopKillZombies",
             "Come to me":"comeToMe",
-            "Fight Me": "fightMe"
+            "Fight Me": "fightMe",
+            "Clear Queue": "clearQ"
             
         }
 

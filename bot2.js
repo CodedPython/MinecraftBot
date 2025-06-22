@@ -93,11 +93,11 @@ wss.on("connection", function connection(ws) {
       await digDown(count);
     } else if (cmd.startsWith("fightWith")) {
       const parts = cmd.split(":");
-      const name = parts[1]
+      const name = parts[1];
       fightPlayer(bot, bot.players[name]);
     } else if (cmd.startsWith("shootAt")) {
       const parts = cmd.split(":");
-      const name = parts[1]
+      const name = parts[1];
       ShootPlayer(bot, bot.players[name]);
     } else if (cmd === "buildUp") await buildUp();
     else if (cmd === "digGold") await digGold();
@@ -113,8 +113,12 @@ wss.on("connection", function connection(ws) {
       const player = bot.players[playerUsername];
       if (!player || !player.entity) return;
       Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
-    } else if (cmd === "fightMe") fightPlayer(bot, playerUsername);
-    
+    } else if (cmd === "fightMe") {
+      fightPlayer(bot, playerUsername, "sword");
+    } else if (cmd==="clearQ"){
+      runningTask = false;
+      taskQueue.splice(0, taskQueue.length);
+    }
   });
 });
 bot.on("chat", (username, message) => {
@@ -140,9 +144,8 @@ bot.on("chat", (username, message) => {
     const player = bot.players[username];
     //ShootProjectile(bot, player.entity);
     bot.hawkEye.autoAttack(player.entity, "crossbow"); //Weapon and target can be changed.
-    
-  } else if (message === "stop"){
-    bot.hawkEye.stop()
+  } else if (message === "stop") {
+    bot.hawkEye.stop();
   }
 });
 function digDown(count = 1) {
@@ -276,7 +279,7 @@ function fightPlayer(bot, playerEntity, meleeItem = "sword") {
   EquipItem(bot, meleeItem);
   bot.pvp.attack(playerEntity.entity);
 }
-function ShootPlayer(bot, playerEntity, rangedItem = "bow"){
+function ShootPlayer(bot, playerEntity, rangedItem = "bow") {
   if (!playerEntity) return;
   EquipItem(bot, rangedItem);
   bot.hawkEye.autoAttack(playerEntity.entity, rangedItem);
