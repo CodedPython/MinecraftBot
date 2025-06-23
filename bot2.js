@@ -147,7 +147,7 @@ bot.on("chat", (username, message) => {
   } else if (message === "shoot me") {
     const player = bot.players[username];
     //ShootProjectile(bot, player.entity);
-    bot.hawkEye.autoAttack(player.entity, "crossbow"); //Weapon and target can be changed.
+    bot.hawkEye.autoAttack(player.entity, "bow"); //Weapon and target can be changed.
   } else if (message === "stop") {
     bot.hawkEye.stop();
   }
@@ -219,7 +219,7 @@ function digGold() {
       await bot.tool.equipForBlock(block);
       await bot.dig(block);
     } else {
-      bot.chat("/tell playerUsername Can't reach gold block");
+      bot.chat("Can't reach gold block");
     }
   });
 }
@@ -255,8 +255,8 @@ function KillZombies(bot) {
   if (zombieAttackInterval) return;
   zombieAttackInterval = setInterval(async () => {
     const sword = EquipItem(bot, "sword");
-    const axe = EquipItem(bot, "axe");
-    if (!sword && !axe && warnUserMelee) {
+    //const axe = EquipItem(bot, "axe");
+    if (!sword && warnUserMelee) { //!axe &&
       console.warn("Bot Doesn't have a melee weapon");
       warnUserMelee = false;
     }
