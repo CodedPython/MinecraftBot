@@ -415,37 +415,25 @@ function moveForwardOneBlock(bot) {
     }
   }, 50); // check every 50ms
 }
+
+
 function moveToClosestSide(bot, block) {
-  const { GoalBlock } = require("mineflayer-pathfinder").goals;
+  const { GoalBlock } = require('mineflayer-pathfinder').goals;
   const sides = [
-    block.position.offset(1, 0, 0), // +X (east)
-    block.position.offset(-1, 0, 0), // -X (west)
-    block.position.offset(0, 0, 1), // +Z (south)
-    block.position.offset(0, 0, -1), // -Z (north)
-    block.position.offset(0, 1, 0), // +Y (top)
-    block.position.offset(0, -1, 0), // -Y (bottom)
+    block.position.offset(1, 0, 0),
+    block.position.offset(-1, 0, 0),
+    block.position.offset(0, 0, 1),
+    block.position.offset(0, 0, -1),
+    block.position.offset(0, 1, 0),
+    block.position.offset(0, -1, 0)
   ];
 
-  // Filter to positions the bot can stand on (usually not below or in air)
-  const walkableSides = sides.filter((pos) => {
-    const below = pos.offset(0, -1, 0);
-    return (
-      bot.blockAt(below)?.boundingBox === "block" &&
-      bot.blockAt(pos)?.boundingBox === "empty"
-    );
+  const closest = sides.reduce((a, b) => {
+    const da = bot.entity.position.distanceTo(a);
+    const db = bot.entity.position.distanceTo(b);
+    return da < db ? a : b;
   });
-
-  if (walkableSides.length === 0) {
-    console.log("No reachable side found.");
-    return;
-  }
-
-  // Find the closest walkable side
-  const closest = walkableSides.reduce((prev, curr) =>
-    bot.entity.position.distanceTo(curr) < bot.entity.position.distanceTo(prev)
-      ? curr
-      : prev
-  );
 
   bot.pathfinder.setGoal(new GoalBlock(closest.x, closest.y, closest.z));
 }
+
