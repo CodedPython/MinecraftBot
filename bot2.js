@@ -54,6 +54,11 @@ bot.once("spawn", () => {
   defaultMove = new Movements(bot, mcData);
   bot.pathfinder.setMovements(defaultMove);
 });
+bot.once("entityHurt", (Entity) => {
+  if (Entity != bot.entity) return;
+  EquipItem(bot, "sword");
+  bot.pvp.attack(Entity.entity);
+});
 // Create a websocket server on port 8080
 const wss = new WebSocket.Server({ port: 8080 });
 wss.on("connection", function connection(ws) {
@@ -95,11 +100,11 @@ wss.on("connection", function connection(ws) {
     } else if (cmd.startsWith("fightWith")) {
       const parts = cmd.split(":");
       const name = parts[1];
-      fightPlayer(bot, bot.players[name]);
+      FightEntity(bot, bot.players[name]);
     } else if (cmd.startsWith("shootAt")) {
       const parts = cmd.split(":");
       const name = parts[1];
-      ShootPlayer(bot, bot.players[name]);
+      ShootEntity(bot, bot.players[name]);
     } else if (cmd === "buildUp") await buildUp();
     else if (cmd === "digGold") await digGold();
     else if (cmd === "locateGold") locateGold(32);
@@ -116,12 +121,20 @@ wss.on("connection", function connection(ws) {
       Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
     } else if (cmd === "fightMe") {
       //console.log("Fighting player")
-      fightPlayer(bot, bot.players[playerUsername], "sword");
-    } else if (cmd==="shootMe"){
-      ShootPlayer(bot, bot.players[playerUsername], "bow")
-    } else if (cmd==="clearQ"){
+      FightEntity(bot, bot.players[playerUsername], "sword");
+    } else if (cmd === "shootMe") {
+      ShootEntity(bot, bot.players[playerUsername], "bow");
+    } else if (cmd === "clearQ") {
       runningTask = false;
       taskQueue.splice(0, taskQueue.length);
+    } else if (cmd === "get_inventory") {
+      const items = bot.inventory.items().map((item) => ({
+        name: item.name,
+        count: item.count,
+        slot: item.slot,
+      }));
+      ws.send(JSON.stringify({ type: "inventory", items }));
+      console.log("Sending inventory:", items);
     }
   });
 });
@@ -143,13 +156,14 @@ bot.on("chat", (username, message) => {
     StopKillingZombies(bot);
   } else if (message === "fight me") {
     const player = bot.players[username];
-    fightPlayer(bot, player);
+    FightEntity(bot, player);
   } else if (message === "shoot me") {
     const player = bot.players[username];
     //ShootProjectile(bot, player.entity);
     bot.hawkEye.autoAttack(player.entity, "bow"); //Weapon and target can be changed.
   } else if (message === "stop") {
     bot.hawkEye.stop();
+    bot.pvp.stop();
   }
 });
 function digDown(count = 1) {
@@ -256,7 +270,8 @@ function KillZombies(bot) {
   zombieAttackInterval = setInterval(async () => {
     const sword = EquipItem(bot, "sword");
     //const axe = EquipItem(bot, "axe");
-    if (!sword && warnUserMelee) { //!axe &&
+    if (!sword && warnUserMelee) {
+      //!axe &&
       console.warn("Bot Doesn't have a melee weapon");
       warnUserMelee = false;
     }
@@ -278,13 +293,13 @@ function StopKillingZombies(bot) {
   warnUserMelee = true;
   zombieAttackInterval = null;
 }
-function fightPlayer(bot, playerEntity, meleeItem = "sword") {
-  if (!playerEntity) return;
+function FightEntity(bot, Entity, meleeItem = "sword") {
+  if (!Entity) return;
   EquipItem(bot, meleeItem);
-  bot.pvp.attack(playerEntity.entity);
+  bot.pvp.attack(Entity.entity);
 }
-function ShootPlayer(bot, playerEntity, rangedItem = "bow") {
-  if (!playerEntity) return;
+function ShootEntity(bot, Entity, rangedItem = "bow") {
+  if (!Entity) return;
   EquipItem(bot, rangedItem);
-  bot.hawkEye.autoAttack(playerEntity.entity, rangedItem);
+  bot.hawkEye.autoAttack(Entity.entity, rangedItem);
 }
