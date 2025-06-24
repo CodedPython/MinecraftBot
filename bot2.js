@@ -134,7 +134,6 @@ wss.on("connection", function connection(ws) {
         slot: item.slot,
       }));
       ws.send(JSON.stringify({ type: "inventory", items }));
-      console.log("Sending inventory:", items);
     }
   });
 });
