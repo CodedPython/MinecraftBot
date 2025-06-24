@@ -9,9 +9,15 @@ Gold Detection: Scans the area for gold blocks and states where it is.
 
 PvP Mode: Engages in combat with either a inputted player or whoever states "fight me".
 
-Moves to Position: Moves to the player specified in the code (change the "playerUsername" variable in the code) when they state "come to me"
+Moves to Position: Moves to the player specified in the GUI or in the code (variable name=playerUsername, occurs when "come to me" is stated in the chat.)
 
 Zombie Kill Aura: The bot will stay in a position and attempt to kill all hostile zombies.
+
+Collect Blocks: Moves to the nearest block that is specified and mines it.
+
+Automatic Eating: The bot will automatically consume food when it doesn't have max hunger.
+
+Re-Equiping Hand-held Items: When the bot automatically eats, it changes what is currently held, this just changes the item back to whatever it held last (sword, bow, pickaxe, etc).
 
 And small scale macro creation! 
 
