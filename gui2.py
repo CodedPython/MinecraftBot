@@ -49,11 +49,13 @@ class BotGUI:
         status_frame = ttkb.Frame(self.status_tab, padding=10)
         status_frame.pack(fill="x")
         self.username = ttkb.Label(status_frame, text="Username: ?", font=("Segoe UI", 12))
-        self.username.pack(side="left", padx=35)
+        self.username.pack(side="top", padx=10)
         self.health_label = ttkb.Label(status_frame, text="Health: ?", font=("Segoe UI", 12))
-        self.health_label.pack(side="left", padx=10)
+        self.health_label.pack(side="top", padx=10)
         self.pos_label = ttkb.Label(status_frame, text="Position: ?", font=("Segoe UI", 12))
-        self.pos_label.pack(side="right", padx=10)
+        self.pos_label.pack(side="top", padx=10)
+        self.food_label = ttkb.Label(status_frame, text="Food: ?", font=("Segoe UI", 12))
+        self.food_label.pack(side="top",padx=10)
 
     def create_commands_tab(self):
         self.commands = {
@@ -100,6 +102,12 @@ class BotGUI:
         self.player_name2.insert(0, "PlayerNameHere")
         self.player_name2.grid(row=2, column=1)
         ttkb.Button(custom_frame, text="Shoot", command=self.send_Shoot_at_player).grid(row=2, column=2)
+        
+        ttkb.Label(custom_frame, text="Dig Block (name):").grid(row=3, column=0, sticky="e")
+        self.digBlock = ttkb.Entry(custom_frame)
+        self.digBlock.insert(0, "oak_log")
+        self.digBlock.grid(row=3, column=1)
+        ttkb.Button(custom_frame, text="Dig", command=self.send_digBlock).grid(row=3, column=2)
 
     def create_macro_tab(self):
         macro_frame = ttkb.LabelFrame(self.macro_tab, text="Macro Controls")
@@ -166,9 +174,10 @@ class BotGUI:
                     self.inv_text.delete("1.0", tk.END)
                     self.inv_text.insert(tk.END, inventory_list)
 
-                elif isinstance(data, dict) and all(k in data for k in ("health", "username", "position")):
-                    self.health_label.config(text=f"Health: {data['health']}")
+                elif isinstance(data, dict) and all(k in data for k in ("health", "username", "position", "food")):
+                    self.health_label.config(text=f"Health: {round(data['health'],2)}")
                     self.username.config(text=f"Username: {data['username']}")
+                    self.food_label.config(text=f"Food: {round(data['food'], 2)}")
                     pos = data["position"]
                     self.pos_label.config(
                         text=f"Position: {round(pos['x'], 2)}, {round(pos['y'], 2)}, {round(pos['z'], 2)}"
@@ -200,6 +209,14 @@ class BotGUI:
             self.ws.send(f"shootAt:{name}")
         except ValueError:
             print("Invalid name for shoot command")
+            
+    def send_digBlock(self):
+        try:
+            name = self.digBlock.get()
+            self.ws.send(f"digBlock:{name}")
+        except ValueError:
+            print("Invalid name for dig command")
+            
     def toggle_theme(self):
         self.current_theme = "light" if self.current_theme == "dark" else "dark"
         new_theme = self.themes[self.current_theme]

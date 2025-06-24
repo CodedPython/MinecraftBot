@@ -26,9 +26,14 @@ const taskQueue = [];
 let runningTask = false;
 let defaultMove;
 let zombieAttackInterval;
-let mcData;
+//let mcData;
 let playerUsername = "PlayerNameHere";
 let warnUserMelee = true;
+let blockSearchDistance = 32;
+let startEatFoodInterval;
+let botFood = "bread"
+let warnNoFood = true;
+let lastHeldItem;
 function enqueueTask(taskFn) {
   taskQueue.push(taskFn);
   processTaskQueue();
@@ -53,11 +58,19 @@ bot.once("spawn", () => {
   mcData = require("minecraft-data")(bot.version);
   defaultMove = new Movements(bot, mcData);
   bot.pathfinder.setMovements(defaultMove);
+  startEating(bot);
 });
-bot.once("entityHurt", (Entity) => {
-  if (Entity != bot.entity) return;
-  EquipItem(bot, "sword");
-  bot.pvp.attack(Entity.entity);
+//bot.on("entityHurt", (Entity) => {
+//  if (Entity === bot.entity) return;
+//  bot.chat("Fighting " + Entity.username);
+//  FightEntity(bot, Entity);
+//});
+bot.on("kicked", (reason) => {
+  console.error("Kicked reason:", reason.value);
+});
+bot.on("whisper", (username, message) => {
+  if (username === bot.username) return;
+  if (message === "ping") bot.chat("/msg " + username + " pong");
 });
 // Create a websocket server on port 8080
 const wss = new WebSocket.Server({ port: 8080 });
@@ -69,6 +82,7 @@ wss.on("connection", function connection(ws) {
           health: bot.health,
           username: bot.entity.username,
           position: bot.entity.position,
+          food: bot.food,
         })
       );
     }
@@ -97,6 +111,14 @@ wss.on("connection", function connection(ws) {
       const parts = cmd.split(":");
       const count = parts.length > 1 ? parseInt(parts[1], 10) : 1;
       await digDown(count);
+    } else if (cmd.startsWith("digBlock")) {
+      const parts = cmd.split(":");
+      if (!parts[1]) {
+        console.warn("There is no block to search for");
+        return;
+      }
+      const blockType = bot.registry.blocksByName[parts[1]];
+      CollectBlock(bot, blockType.name);
     } else if (cmd.startsWith("fightWith")) {
       const parts = cmd.split(":");
       const name = parts[1];
@@ -107,7 +129,7 @@ wss.on("connection", function connection(ws) {
       ShootEntity(bot, bot.players[name]);
     } else if (cmd === "buildUp") await buildUp();
     else if (cmd === "digGold") await digGold();
-    else if (cmd === "locateGold") locateGold(32);
+    else if (cmd === "locateGold") locateGold(blockSearchDistance);
     else if (cmd === "quit") {
       bot.reconnect = false;
       bot.quit();
@@ -148,7 +170,7 @@ bot.on("chat", (username, message) => {
     Pathfind_To_Goal(bot, new goals.GoalFollow(player.entity), 1);
     //bot.pathfinder.setGoal(new goals.GoalFollow(player.entity, 1));
   } else if (message === "locate gold") {
-    locateGold(32);
+    locateGold(blockSearchDistance);
   } else if (message === "kill zombie") {
     KillZombies(bot);
   } else if (message === "stop kill zombie") {
@@ -163,6 +185,17 @@ bot.on("chat", (username, message) => {
   } else if (message === "stop") {
     bot.hawkEye.stop();
     bot.pvp.stop();
+  } else if (message.startsWith("collect")) {
+    const data = message.split(" ");
+    if (!data[1]) {
+      console.warn("There is no block to search for");
+      return;
+    }
+    const blockType = bot.registry.blocksByName[data[1]];
+    CollectBlock(bot, blockType.name);
+    //CollectBlock(bot, blockType.name, blockSearchDistance);
+  } else if (message === "items") {
+    console.log(bot.nearestEntity());
   }
 });
 function digDown(count = 1) {
@@ -261,8 +294,12 @@ function EquipItem(bot, itemWanted) {
   const itemToEquip = bot.inventory
     .items()
     .find((item) => item.name.includes(itemWanted));
-  if (itemToEquip) bot.equip(itemToEquip, "hand");
-  return itemToEquip;
+  if (itemToEquip) {
+    bot.equip(itemToEquip, "hand");
+    return true;
+  } else {
+    return false;
+  }
 }
 function KillZombies(bot) {
   if (zombieAttackInterval) return;
@@ -287,7 +324,7 @@ function KillZombies(bot) {
     }
   }, 1000);
 }
-function StopKillingZombies(bot) {
+function StopKillingZombies() {
   clearInterval(zombieAttackInterval);
   warnUserMelee = true;
   zombieAttackInterval = null;
@@ -301,4 +338,114 @@ function ShootEntity(bot, Entity, rangedItem = "bow") {
   if (!Entity) return;
   EquipItem(bot, rangedItem);
   bot.hawkEye.autoAttack(Entity.entity, rangedItem);
+}
+function startEating(bot) {
+  if (startEatFoodInterval) return;
+  startEatFoodInterval = setInterval(async () => {
+    ConsumeItem(bot, botFood);
+  }, 3000);
+}
+async function ConsumeItem(bot, item = "bread") {
+  if (!bot || !item) return;
+  lastHeldItem = bot.heldItem ? bot.heldItem.name : null;
+  const hunger = bot.food; // 0 to 20
+  const maxHunger = 20;
+  if (hunger >= maxHunger) return;
+  const hasEquipped = await EquipItem(bot, item);
+  if (hasEquipped) {
+    try {
+      await bot.consume();
+      console.log(`Bot ate ${item}.`);
+      if (lastHeldItem) {
+        await EquipItem(bot, lastHeldItem);
+        console.log(`Re-equipped previous item: ${lastHeldItem}`);
+      }
+    } catch (err) {
+      console.error("Failed to consume item:", err);
+    }
+  } else if (warnNoFood && !hasEquipped) {
+    console.warn("Bot doesn't have the item:", item);
+    warnNoFood = false;
+  }
+}
+function GetBlock(bot, blockName,searchDistance = 32) {
+  const block = bot.findBlock({
+    matching: mcData.blocksByName[blockName].id,
+    maxDistance: searchDistance,
+  });
+  return block
+}
+async function CollectBlock(bot, blockType) {
+  const block = GetBlock(bot, blockType)
+
+
+  if (!block) {
+    bot.chat("Didn't find the block");
+    return;
+  }
+
+  // Set the goal
+  moveToClosestSide(bot, block);
+
+  // Wait until goal is reached
+  await new Promise((resolve) => {
+    bot.once("goal_reached", resolve);
+  });
+
+  await bot.tool.equipForBlock(block);
+  try {
+    await bot.dig(block, true, "raycast");
+  } catch (error) {
+    console.log(error);
+  }
+
+  moveForwardOneBlock(bot);
+}
+// Moves the bot forward by 1 block
+function moveForwardOneBlock(bot) {
+  const startPos = bot.entity.position.clone();
+
+  bot.setControlState("forward", true);
+
+  const interval = setInterval(() => {
+    const dist = bot.entity.position.distanceTo(startPos);
+    if (dist >= 1.0) {
+      bot.setControlState("forward", false);
+      clearInterval(interval);
+    }
+  }, 50); // check every 50ms
+}
+function moveToClosestSide(bot, block) {
+  const { GoalBlock } = require("mineflayer-pathfinder").goals;
+  const sides = [
+    block.position.offset(1, 0, 0), // +X (east)
+    block.position.offset(-1, 0, 0), // -X (west)
+    block.position.offset(0, 0, 1), // +Z (south)
+    block.position.offset(0, 0, -1), // -Z (north)
+    block.position.offset(0, 1, 0), // +Y (top)
+    block.position.offset(0, -1, 0), // -Y (bottom)
+  ];
+
+  // Filter to positions the bot can stand on (usually not below or in air)
+  const walkableSides = sides.filter((pos) => {
+    const below = pos.offset(0, -1, 0);
+    return (
+      bot.blockAt(below)?.boundingBox === "block" &&
+      bot.blockAt(pos)?.boundingBox === "empty"
+    );
+  });
+
+  if (walkableSides.length === 0) {
+    console.log("No reachable side found.");
+    return;
+  }
+
+  // Find the closest walkable side
+  const closest = walkableSides.reduce((prev, curr) =>
+    bot.entity.position.distanceTo(curr) < bot.entity.position.distanceTo(prev)
+      ? curr
+      : prev
+  );
+
+  bot.pathfinder.setGoal(new GoalBlock(closest.x, closest.y, closest.z));
 }
