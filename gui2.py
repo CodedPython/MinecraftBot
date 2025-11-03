@@ -67,7 +67,7 @@ class BotGUI:
             "Dig Gold Block": "digGold", "Quit": "quit",
             "Locate Gold": "locateGold", "Kill Zombies": "killZombies",
             "Stop Killing Zombies": "stopKillZombies", "Come to me": "comeToMe",
-            "Fight Me": "fightMe", "Clear Queue": "clearQ", "Shoot Me": "shootMe"
+            "Fight Me": "fightMe", "Clear Queue": "clearQ", "Shoot Me": "shootMe", "Stop Attack":"StopAttack"
         }
 
         commands_frame = ttkb.LabelFrame(self.commands_tab, text="Bot Commands")
